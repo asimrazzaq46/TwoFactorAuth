@@ -23,7 +23,16 @@ namespace TwoFactorAuthProj.Repositery
             return await _db.OtpFailedAttempts.FirstOrDefaultAsync(fa => fa.UserId == userId);
         }
 
-        public async Task<OtpRecord> GetOtpAsync(string userId, OtpPurpose purpose)
+        //public async Task<long?> GetLastUsedCounterAsync(string userId)
+        //{
+        //    return await _db.OtpRecords
+        //    .Where(o => o.UserId == userId)
+        //    .OrderByDescending(o => o.Counter)
+        //    .Select(o => (long?)o.Counter)
+        //    .FirstOrDefaultAsync();
+        //}
+
+        public async Task<OtpRecord> GetOtpAsync(string userId, string purpose)
         {
             return await _db.OtpRecords.FirstOrDefaultAsync(o => o.UserId.Equals(userId) && o.Purpose == purpose) ?? throw new Exception("Otp not found");
         }
@@ -52,7 +61,7 @@ namespace TwoFactorAuthProj.Repositery
             _db.OtpRecords.Remove(otpRecord);
         }
 
-        public async Task RemoveOtpByUserIdAndPurpose(string userId, OtpPurpose purpose)
+        public async Task RemoveOtpByUserIdAndPurpose(string userId, string purpose)
         {
             var existingRecords = _db.OtpRecords
             .Where(o => o.UserId == userId && o.Purpose == purpose);
@@ -78,5 +87,19 @@ namespace TwoFactorAuthProj.Repositery
         {
             await _db.SaveChangesAsync();
         }
+
+        //public async Task UpdateCounterAsync(string userId, long newCounter)
+        //{
+        //    var record = await _db.OtpRecords
+        //    .Where(o => o.UserId == userId)
+        //    .OrderByDescending(o => o.Counter)
+        //    .FirstOrDefaultAsync();
+
+        //    if (record != null)
+        //    {
+        //        record.Counter = newCounter;
+        //        await SavechangesAsync();
+        //    }
+        //}
     }
 }

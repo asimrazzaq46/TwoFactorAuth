@@ -48,7 +48,9 @@ IOtpService _otpService, IDataBaseOtpService _dbTotp, IOtpGoogleAuth _googleotp)
 
         //var verifyOtp = await _dbTotp.VerifyOtpAsync(6743,otpDto.Code,OtpPurpose.Login.ToString());
 
-        var verifyOtp = _otpService.VerifyOtp("khsha2432hk", otpDto.Code, user.Id, OtpPurpose.Login.ToString());
+        //var verifyOtp = _otpService.VerifyOtp("khsha2432hk", otpDto.Code, user.Id, OtpPurpose.Login.ToString());
+
+        var verifyOtp = await _dbTotp.VerifyOtpAsync(user.Id,otpDto.Code,OtpPurpose.Login.ToString());
 
         if (!verifyOtp) return BadRequest("Invalid Otp or otp time expires");
 
@@ -182,7 +184,7 @@ IOtpService _otpService, IDataBaseOtpService _dbTotp, IOtpGoogleAuth _googleotp)
         var (code, date) = await GenerateCodeAsync(email);
 
         //var result =  await _sms.MessageAsync(phoneNumber, code);
-        Console.WriteLine(code);
+       
 
         var result = true;
         return (result, date);
@@ -205,9 +207,11 @@ IOtpService _otpService, IDataBaseOtpService _dbTotp, IOtpGoogleAuth _googleotp)
 
         if (user == null) throw new Exception("User not found");
 
-        var (otp, date) = _otpService.GenerateOtp("khsha2432hk", user.Id, OtpPurpose.Login.ToString());
+        //var (otp, date) = _otpService.GenerateOtp("khsha2432hk", user.Id, OtpPurpose.Login.ToString());
 
-        //var verificationCode = await _dbTotp.GenerateOtp(6743, OtpPurpose.Login.ToString());
+        var (otp, date) = await _dbTotp.GenerateOtp(user.Id,OtpPurpose.Login.ToString());
+
+        Console.WriteLine(otp);
 
         return (otp, date);
     }

@@ -8,5 +8,6 @@ public class OtpRecord
     public required string UserId { get; set; }
     public required string Otp { get; set; }
     public DateTime Expiry { get; set; }
-    public OtpPurpose Purpose { get; set; }
+    public required string Purpose { get; set; }
+    public long Counter { get; set; }
 }

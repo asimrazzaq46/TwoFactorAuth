@@ -15,12 +15,12 @@ public class DataBaseOtpService(IOtpRepositery _dbOTP,IConfiguration _config) : 
     private readonly string secret = _config["HOTP:secret"] ?? throw new NullReferenceException($"Please provaide a HOTP : {nameof(secret)} in your application app setting");
 
 
-    public async Task<string> GenerateOtp<T>(T userid, string purpose, bool alphanumeric = false)
+    public async Task<(string otp,DateTime expiry)> GenerateOtp<T>(T userid, string purpose, bool alphanumeric = false)
     {
         //validate user id and otpPurpose
         if (userid == null) throw new ArgumentNullException("userid is required");
 
-        if (!Enum.TryParse<OtpPurpose>(purpose, true, out var otpPurpose)) throw new Exception($"Invalid OTP purpose: {purpose}");
+        //if (!Enum.TryParse<OtpPurpose>(purpose, true, out var otpPurpose)) throw new Exception($"Invalid OTP purpose: {purpose}");
 
         string userIdString = userid.ToString() ?? throw new Exception("userid is null");
 
@@ -33,19 +33,22 @@ public class DataBaseOtpService(IOtpRepositery _dbOTP,IConfiguration _config) : 
         }
 
         //before generating new otp's, invalidate the previous one
-       await _dbOTP.RemoveOtpByUserIdAndPurpose(userIdString, otpPurpose);
+       await _dbOTP.RemoveOtpByUserIdAndPurpose(userIdString, purpose);
 
 
         // checking the otp if user wants in numeric form like (758432) or in string form (YCRHIL)
         string otp = alphanumeric ? GenerateAlphanumericOtp(secret, purpose) : GenerateNumericOtp(secret,purpose);
 
+        var expiry = DateTime.UtcNow.AddMinutes(5).AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerSecond));
+
+
         // after generating otp we save that otp in db
         var otpToCreate = new OtpRecord
         {
             Otp = otp,
-            Purpose = otpPurpose,
+            Purpose = purpose,
             UserId = userIdString,
-            Expiry = DateTime.UtcNow.AddMinutes(5).AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerSecond)),
+            Expiry = expiry,
 
         };
 
@@ -53,7 +56,7 @@ public class DataBaseOtpService(IOtpRepositery _dbOTP,IConfiguration _config) : 
 
         await _dbOTP.SavechangesAsync();
 
-        return otp;
+        return (otp, expiry);
 
 
     }
@@ -62,11 +65,11 @@ public class DataBaseOtpService(IOtpRepositery _dbOTP,IConfiguration _config) : 
     {
         //validate user id and otpPurpose
         if (userId == null) throw new ArgumentNullException("userid is null");
-        if (!Enum.TryParse<OtpPurpose>(purpose, true, out var otpPurpose)) throw new Exception($"Invalid OTP purpose: {purpose}");
+        //if (!Enum.TryParse<OtpPurpose>(purpose, true, out var otpPurpose)) throw new Exception($"Invalid OTP purpose: {purpose}");
 
         string userIdString = userId.ToString() ?? throw new Exception("userid is null");
 
-        var otpInDb = await _dbOTP.GetOtpAsync(userIdString, otpPurpose);
+        var otpInDb = await _dbOTP.GetOtpAsync(userIdString, purpose);
 
         // if otp we have saved inside database is not valid then wee increment the Failed attempt
         if (otpInDb == null || otpInDb.Otp != otp || otpInDb.Expiry <= DateTime.UtcNow.AddMilliseconds(-50))
